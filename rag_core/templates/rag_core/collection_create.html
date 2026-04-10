@@ -1,0 +1,14 @@
+{% extends "rag_core/base_app.html" %}
+{% block title %}New workspace{% endblock %}
+{% block app_content %}
+<div class="narrow-form">
+  <h1>New workspace</h1>
+  <p class="muted">A workspace is a document collection—chat can target one workspace or all of yours.</p>
+  <form method="post" class="stack-form">
+    {% csrf_token %}
+    <label>Name {{ form.name }}</label>
+    <label>Description {{ form.description }}</label>
+    <button type="submit" class="btn primary">Create workspace</button>
+  </form>
+</div>
+{% endblock %}

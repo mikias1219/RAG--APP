@@ -1,6 +1,6 @@
-# Django RAG portal (Azure OpenAI + Azure AI Search)
+# Knowledge Hub — multi-tenant Django RAG (Azure OpenAI + Azure AI Search)
 
-Server-rendered **Django** app with **Django templates** for chat and document upload. Retrieval uses **Azure OpenAI** (embeddings + chat) and **Azure AI Search** (vector index)—the standard Microsoft RAG stack on Azure.
+Server-rendered **Django** app with **login/registration**, **per-user workspaces** (collections), and a **sidebar + chat UI**. Each user only queries **their own** indexed chunks in Azure AI Search (`userId` + `collectionId` filters). Retrieval uses **Azure OpenAI** (embeddings + chat) and **Azure AI Search** (vector index).
 
 ## Prerequisites
 
@@ -21,14 +21,19 @@ pip install -r requirements.txt
 copy .env.example .env
 # Edit .env with your endpoints, keys, and deployment names
 python manage.py migrate
-python manage.py createsuperuser
+python manage.py createsuperuser   # optional; users can also register at /register/
 python manage.py setup_search_index
-python manage.py index_documents
 python manage.py collectstatic --noinput
 python manage.py runserver
 ```
 
-Open http://127.0.0.1:8000 — use **Ask** to query indexed content and **Upload** to add `.txt` / `.md` files.
+1. Open **http://127.0.0.1:8000** — register (you get a **General** workspace) or sign in.
+2. Open **Workspaces** → upload `.txt`, `.md`, `.pdf`, or `.docx` into a workspace.
+3. Use **Chat** — scope **all workspaces** or one workspace via the sidebar.
+
+After upgrading, run **`python manage.py setup_search_index` again** so the index includes `userId` and `collectionId`. Old chunks without those fields will not match user filters; re-upload if needed.
+
+**CLI indexing** (optional): `python manage.py index_documents --username YOU --collection-id 1 --path path/to/file.pdf`
 
 Health check (for load balancers): `GET /health/`
 
@@ -75,7 +80,6 @@ High-level steps:
    python manage.py migrate
    python manage.py collectstatic --noinput
    python manage.py setup_search_index
-   python manage.py index_documents
    ```
 
 7. **Gunicorn systemd:** adapt `deploy/gunicorn.service.example` → `/etc/systemd/system/rag-portal.service`, then:
@@ -100,8 +104,8 @@ High-level steps:
 - `config/` — Django settings, URLs, WSGI
 - `rag_core/` — views, templates, static files, RAG services
 - `rag_core/services/` — Azure OpenAI, Azure Search, chunking, orchestration
-- `documents/sample/` — sample markdown for first index run
-- `documents/uploads/` — user uploads from the web UI
+- `documents/sample/` — optional sample files for CLI indexing only
+- `documents/uploads/<user_id>/<collection_id>/` — files uploaded via the web UI
 - `deploy/` — example **systemd** and **nginx** configs
 
 ## Commands reference
@@ -109,8 +113,8 @@ High-level steps:
 | Command | Purpose |
 |--------|---------|
 | `python manage.py setup_search_index` | Create/update vector index in Azure AI Search |
-| `python manage.py index_documents` | Index all `.txt`/`.md` under `documents/sample` and `documents/uploads` |
-| `python manage.py index_documents --path path/to/file.md` | Index one file |
+| `python manage.py index_documents --username U --collection-id N --path FILE` | Index one file into that user’s collection |
+| `python manage.py index_documents --username U --collection-id N --folder DIR` | Index a folder (same extensions as the web UI) |
 
 ## License
 

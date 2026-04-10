@@ -51,6 +51,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "rag_core.context_processors.app_shell",
             ],
         },
     },
@@ -106,3 +107,7 @@ EMBEDDING_DIMENSIONS = int(os.environ.get("EMBEDDING_DIMENSIONS", "1536"))
 CHUNK_SIZE = int(os.environ.get("RAG_CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(os.environ.get("RAG_CHUNK_OVERLAP", "50"))
 MAX_UPLOAD_MB = int(os.environ.get("RAG_MAX_UPLOAD_MB", "10"))
+
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/app/"
+LOGOUT_REDIRECT_URL = "/"

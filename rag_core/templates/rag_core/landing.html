@@ -1,0 +1,52 @@
+{% extends "rag_core/base.html" %}
+{% block title %}Knowledge Hub — Private document AI for your company{% endblock %}
+{% block content %}
+<section class="hero-landing">
+  <p class="eyebrow">Less busywork. Faster answers.</p>
+  <h1>Turn policies, contracts, and runbooks into a secure Q&amp;A assistant</h1>
+  <p class="lead-landing">
+    Teams waste hours hunting through PDFs, Word files, and shared drives.
+    <strong>Knowledge Hub</strong> indexes <em>your</em> documents in isolated workspaces,
+    so employees get accurate, cited answers—without exposing data to other tenants.
+  </p>
+  <div class="hero-cta">
+    {% if user.is_authenticated %}
+      <a class="btn primary" href="{% url 'dashboard' %}">Go to dashboard</a>
+    {% else %}
+      <a class="btn primary" href="{% url 'register' %}">Start free</a>
+      <a class="btn ghost" href="{% url 'login' %}">Sign in</a>
+    {% endif %}
+  </div>
+  {% if not has_azure %}
+    <p class="hint-landing">Admin: configure Azure OpenAI and Azure AI Search in <code>.env</code> to enable answers.</p>
+  {% endif %}
+</section>
+
+<section class="grid-benefits">
+  <article class="card-landing">
+    <h3>Cut search time</h3>
+    <p>Ask in natural language; retrieval pulls the right passages from your corpus instead of ten browser tabs.</p>
+  </article>
+  <article class="card-landing">
+    <h3>Per-team workspaces</h3>
+    <p>Legal, HR, and Engineering each keep separate collections—users only see and query their own uploads.</p>
+  </article>
+  <article class="card-landing">
+    <h3>Enterprise-ready stack</h3>
+    <p>Built on <strong>Azure OpenAI</strong> and <strong>Azure AI Search</strong>—the same pattern enterprises use for compliant RAG.</p>
+  </article>
+  <article class="card-landing">
+    <h3>Real materials</h3>
+    <p>Supports text, Markdown, PDF, and Word (.docx) so you can use the files you already have.</p>
+  </article>
+</section>
+
+<section class="section-how">
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li><strong>Create an account</strong> — you get a private default workspace.</li>
+    <li><strong>Upload documents</strong> — we chunk, embed, and store vectors in your search index (scoped to you).</li>
+    <li><strong>Chat</strong> — questions retrieve only from your workspace (or one collection at a time).</li>
+  </ol>
+</section>
+{% endblock %}

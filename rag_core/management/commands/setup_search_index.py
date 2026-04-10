@@ -78,6 +78,18 @@ class Command(BaseCommand):
                 filterable=True,
                 sortable=True,
             ),
+            SimpleField(
+                name="userId",
+                type=SearchFieldDataType.String,
+                filterable=True,
+                facetable=True,
+            ),
+            SimpleField(
+                name="collectionId",
+                type=SearchFieldDataType.String,
+                filterable=True,
+                facetable=True,
+            ),
             SearchField(
                 name="contentVector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),

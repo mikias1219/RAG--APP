@@ -1,0 +1,18 @@
+{% extends "rag_core/base.html" %}
+{% block title %}Create account{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Create account</h1>
+  <p class="muted">Your documents are private to your login. We create a "General" workspace for you.</p>
+  <form method="post" class="stack-form">
+    {% csrf_token %}
+    {% for field in form %}
+      <label>{{ field.label }} {{ field }} {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+        {{ field.errors }}
+      </label>
+    {% endfor %}
+    <button type="submit" class="btn primary wide">Register</button>
+  </form>
+  <p class="auth-alt">Already registered? <a href="{% url 'login' %}">Sign in</a></p>
+</div>
+{% endblock %}

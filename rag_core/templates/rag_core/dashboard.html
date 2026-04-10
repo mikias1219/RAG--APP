@@ -1,0 +1,23 @@
+{% extends "rag_core/base_app.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block app_content %}
+<div class="page-head">
+  <div>
+    <h1>Workspaces</h1>
+    <p class="muted">Organize documents by team, project, or client. Each workspace is indexed separately.</p>
+  </div>
+  <a class="btn primary" href="{% url 'collection_create' %}">+ New workspace</a>
+</div>
+<p class="stat-pill">{{ doc_count }} document(s) indexed across all your workspaces</p>
+<div class="collection-grid">
+  {% for c in collections %}
+    <a class="collection-card" href="{% url 'collection_detail' c.pk %}">
+      <h2>{{ c.name }}</h2>
+      {% if c.description %}<p>{{ c.description|truncatewords:24 }}</p>{% endif %}
+      <span class="meta">{{ c.doc_count }} file(s) · updated {{ c.updated_at|date:"M j, Y" }}</span>
+    </a>
+  {% empty %}
+    <p class="empty-state">No workspaces yet. Create one to start uploading.</p>
+  {% endfor %}
+</div>
+{% endblock %}

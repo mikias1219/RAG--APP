@@ -1,34 +1,56 @@
-{% extends "rag_core/base.html" %}
-{% block title %}Ask — RAG Portal{% endblock %}
-{% block content %}
-<h1>Ask a question</h1>
-<form method="post" class="stack">
-  {% csrf_token %}
-  {{ form.question.errors }}
-  {{ form.question.label_tag }}
-  {{ form.question }}
-  <button type="submit" class="btn primary">Get answer</button>
-</form>
+{% extends "rag_core/base_app.html" %}
+{% block title %}Chat{% endblock %}
+{% block app_content %}
+<div class="chat-layout">
+  <div class="chat-scope-bar">
+    {% if active_collection %}
+      <span class="scope-badge">Scope: <strong>{{ active_collection.name }}</strong></span>
+    {% else %}
+      <span class="scope-badge scope-all">Scope: <strong>All your workspaces</strong></span>
+    {% endif %}
+    <form method="post" class="inline-form">{% csrf_token %}
+      <input type="hidden" name="action" value="clear">
+      <input type="hidden" name="collection" value="{{ collection_pk|default:'' }}">
+      <button type="submit" class="btn btn-xs ghost">Clear conversation</button>
+    </form>
+  </div>
 
-{% if answer %}
-<section class="card answer">
-  <h2>Answer</h2>
-  <div class="prose">{{ answer|linebreaksbr }}</div>
-</section>
-{% endif %}
-
-{% if sources %}
-<section class="card sources">
-  <h2>Sources</h2>
-  <ul>
-    {% for s in sources %}
-      <li>
-        <strong>{{ s.title|default:s.source }}</strong>
-        {% if s.chunkIndex is not None %} — chunk {{ s.chunkIndex }}{% endif %}
-        {% if s.score %}<span class="muted">(score: {{ s.score|floatformat:4 }})</span>{% endif %}
-      </li>
+  <div class="chat-thread" id="chat-thread">
+    {% if not history %}
+      <div class="chat-empty">
+        <p>Ask anything about your indexed documents. Answers use retrieval from <strong>{% if active_collection %}{{ active_collection.name }}{% else %}all of your workspaces{% endif %}</strong> only.</p>
+      </div>
+    {% endif %}
+    {% for msg in history %}
+      {% if msg.role == 'user' %}
+        <div class="bubble bubble-user">
+          <span class="bubble-label">You</span>
+          <div class="bubble-body">{{ msg.content|linebreaksbr }}</div>
+        </div>
+      {% else %}
+        <div class="bubble bubble-assistant">
+          <span class="bubble-label">Assistant</span>
+          <div class="bubble-body">{{ msg.content|linebreaksbr }}</div>
+          {% if msg.sources %}
+            <div class="bubble-sources">
+              <span class="src-title">Sources</span>
+              <ul>
+                {% for s in msg.sources %}
+                  <li>{{ s.title|default:s.source }}{% if s.chunkIndex is not None %} · chunk {{ s.chunkIndex }}{% endif %}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
     {% endfor %}
-  </ul>
-</section>
-{% endif %}
+  </div>
+
+  <form method="post" class="chat-composer">
+    {% csrf_token %}
+    <input type="hidden" name="collection" value="{{ collection_pk|default:'' }}">
+    {{ question_form.question }}
+    <button type="submit" class="btn primary chat-send">Send</button>
+  </form>
+</div>
 {% endblock %}

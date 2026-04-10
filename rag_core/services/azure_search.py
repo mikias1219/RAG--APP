@@ -25,10 +25,10 @@ def hybrid_search(
     query_text: str,
     query_vector: list[float],
     top: int = 5,
+    filter_expr: str | None = None,
 ) -> list[dict]:
     """
-    Run vector search weighted with optional keyword component.
-    Returns list of dicts with at least: id, title, content, source, chunkIndex, score.
+    Run vector search with optional OData filter (e.g. per-tenant isolation).
     """
     client = _search_client()
     vector_query = VectorizedQuery(
@@ -39,7 +39,8 @@ def hybrid_search(
     results = client.search(
         search_text=query_text or "*",
         vector_queries=[vector_query],
-        select=["id", "title", "content", "source", "chunkIndex"],
+        filter=filter_expr,
+        select=["id", "title", "content", "source", "chunkIndex", "userId", "collectionId"],
         top=top,
     )
     out: list[dict] = []
@@ -52,12 +53,20 @@ def hybrid_search(
                 "source": r.get("source"),
                 "chunkIndex": r.get("chunkIndex"),
                 "score": r.get("@search.score"),
+                "collectionId": r.get("collectionId"),
             }
         )
     return out
 
 
 def upload_documents(documents: list[dict]) -> None:
-    """Upload or merge chunk documents (must match index schema)."""
     client = _search_client()
     client.merge_or_upload_documents(documents)
+
+
+def delete_documents(document_ids: list[str]) -> None:
+    """Remove chunks from the index by id."""
+    if not document_ids:
+        return
+    client = _search_client()
+    client.delete_documents(documents=[{"id": i} for i in document_ids])

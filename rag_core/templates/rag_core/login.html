@@ -1,0 +1,18 @@
+{% extends "rag_core/base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Sign in</h1>
+  <p class="muted">Access your workspaces and chat history.</p>
+  <form method="post" class="stack-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="form-errors">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <label>Username {{ form.username }}</label>
+    <label>Password {{ form.password }}</label>
+    <button type="submit" class="btn primary wide">Continue</button>
+  </form>
+  <p class="auth-alt">No account? <a href="{% url 'register' %}">Create one</a></p>
+</div>
+{% endblock %}

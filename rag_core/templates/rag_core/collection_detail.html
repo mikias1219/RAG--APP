@@ -1,0 +1,47 @@
+{% extends "rag_core/base_app.html" %}
+{% block title %}{{ collection.name }}{% endblock %}
+{% block app_content %}
+<div class="page-head">
+  <div>
+    <h1>{{ collection.name }}</h1>
+    {% if collection.description %}<p class="muted">{{ collection.description }}</p>{% endif %}
+  </div>
+  <a class="btn ghost" href="{% url 'chat' %}?collection={{ collection.pk }}">Chat in this workspace</a>
+</div>
+
+<section class="panel">
+  <h2>Upload</h2>
+  <p class="muted small">Allowed: .txt, .md, .pdf, .docx (size limit is set by your administrator in MAX_UPLOAD_MB).</p>
+  <form method="post" enctype="multipart/form-data" class="upload-row">
+    {% csrf_token %}
+    {{ upload_form.file }}
+    <button type="submit" class="btn primary">Upload &amp; index</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Files in this workspace</h2>
+  {% if documents %}
+  <table class="data-table">
+    <thead><tr><th>File</th><th>Chunks</th><th>Uploaded</th><th></th></tr></thead>
+    <tbody>
+      {% for d in documents %}
+      <tr>
+        <td>{{ d.original_name }}</td>
+        <td>{{ d.chunk_count }}</td>
+        <td>{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
+        <td>
+          <form method="post" action="{% url 'document_delete' collection.pk d.pk %}" onsubmit="return confirm('Remove this file from the index?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-xs danger">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+      {% else %}
+      <p class="empty-state">No files yet. Upload a document to index it for chat.</p>
+      {% endif %}
+</section>
+{% endblock %}

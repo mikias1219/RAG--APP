@@ -1,0 +1,44 @@
+{% extends "rag_core/base.html" %}
+{% block body_class %}theme-app{% endblock %}
+{% block layout %}
+<header class="nav-app">
+  <div class="nav-inner">
+    <a class="logo" href="{% url 'dashboard' %}">Knowledge Hub</a>
+    <nav class="nav-links nav-app-center">
+      <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}>Workspaces</a>
+      <a href="{% url 'chat' %}" {% if request.resolver_match.url_name == 'chat' %}class="active"{% endif %}>Chat</a>
+    </nav>
+    <div class="nav-right">
+      <span class="nav-user">{{ user.username }}</span>
+      <form class="nav-logout" action="{% url 'logout' %}" method="post">{% csrf_token %}
+        <button type="submit" class="linkish">Sign out</button>
+      </form>
+    </div>
+  </div>
+</header>
+<div class="app-frame">
+  <aside class="sidebar" aria-label="Workspaces">
+    <div class="sidebar-head">
+      <span>Your workspaces</span>
+      <a class="btn btn-xs primary" href="{% url 'collection_create' %}">+ New</a>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{% url 'chat' %}" class="sidebar-item {% if request.resolver_match.url_name == 'chat' and not request.GET.collection %}is-active{% endif %}">
+        <span class="dot all"></span> All documents
+      </a>
+      {% for c in sidebar_collections %}
+        <a href="{% url 'collection_detail' c.pk %}" class="sidebar-item {% if collection and collection.pk == c.pk %}is-active{% elif request.resolver_match.url_name == 'chat' and request.GET.collection == c.pk|stringformat:'s' %}is-active{% endif %}">
+          <span class="dot"></span> {{ c.name }}
+        </a>
+        <a href="{% url 'chat' %}?collection={{ c.pk }}" class="sidebar-chat-link">Ask in this workspace →</a>
+      {% empty %}
+        <p class="sidebar-empty">Create a workspace to upload files.</p>
+      {% endfor %}
+    </nav>
+  </aside>
+  <div class="app-main">
+    {% include "rag_core/partials/messages.html" %}
+    {% block app_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

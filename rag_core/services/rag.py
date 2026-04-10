@@ -9,28 +9,45 @@ from django.conf import settings
 from . import azure_openai, azure_search
 
 
-def _safe_doc_id(source_name: str, chunk_index: int) -> str:
-    """Azure Search document keys: letters, digits, dash, underscore, equals only (no dots)."""
+def _chunk_doc_id(user_id: int, collection_id: int, source_name: str, chunk_index: int) -> str:
+    """
+    Azure Search document keys: letters, digits, dash, underscore, equals (no dots).
+    Scoped per user and collection to avoid collisions.
+    """
     base = re.sub(r"[^a-zA-Z0-9_=.-]", "_", source_name)
-    base = base.replace(".", "_")[:120]
-    return f"{base}_{chunk_index}"
+    base = base.replace(".", "_")[:80]
+    return f"u{user_id}_c{collection_id}_{base}_{chunk_index}"
+
 
 SYSTEM_PROMPT = (
-    "You are a helpful assistant that answers questions using only the supplied context. "
-    "Cite sources by title or filename when possible. Be concise."
+    "You are a precise enterprise assistant. Answer using ONLY the supplied context. "
+    "If the answer is not supported by the context, say so. Keep answers concise and actionable. "
+    "When citing, mention the document name or title."
 )
 
 
-def answer_question(question: str, top_k: int = 5) -> tuple[str, list[dict]]:
-    """
-    Returns (answer_text, sources_metadata).
-    """
+def _search_filter_for_user(user_id: int, collection_id: int | None) -> str:
+    # OData: strings in single quotes; escape single quotes by doubling
+    uid = str(user_id).replace("'", "''")
+    if collection_id is None:
+        return f"userId eq '{uid}'"
+    cid = str(collection_id).replace("'", "''")
+    return f"userId eq '{uid}' and collectionId eq '{cid}'"
+
+
+def answer_question(
+    question: str,
+    user_id: int,
+    collection_id: int | None = None,
+    top_k: int = 5,
+) -> tuple[str, list[dict]]:
     q = question.strip()
     if not q:
         return "", []
 
+    filt = _search_filter_for_user(user_id, collection_id)
     vec = azure_openai.embed_query(q)
-    hits = azure_search.hybrid_search(q, vec, top=top_k)
+    hits = azure_search.hybrid_search(q, vec, top=top_k, filter_expr=filt)
     chunks = []
     sources: list[dict] = []
     for h in hits:
@@ -43,13 +60,14 @@ def answer_question(question: str, top_k: int = 5) -> tuple[str, list[dict]]:
                 "source": h.get("source"),
                 "chunkIndex": h.get("chunkIndex"),
                 "score": h.get("score"),
+                "collectionId": h.get("collectionId"),
             }
         )
 
     if not chunks:
         return (
-            "No matching passages were found in the search index. "
-            "Upload documents and run indexing, or run: python manage.py index_documents",
+            "No matching passages were found in your indexed documents for this workspace. "
+            "Upload files to this collection (or switch scope) and try again.",
             [],
         )
 
@@ -60,11 +78,12 @@ def answer_question(question: str, top_k: int = 5) -> tuple[str, list[dict]]:
 def index_file_content(
     text: str,
     source_name: str,
+    *,
+    user_id: int,
+    collection_id: int,
     title: str | None = None,
-) -> int:
-    """
-    Chunk file, embed, push to Azure Search. Returns number of chunks indexed.
-    """
+) -> tuple[int, list[str]]:
+    """Chunk, embed, push to Azure Search. Returns (chunk_count, search document ids)."""
     from .chunking import chunk_text
 
     display_title = title or source_name
@@ -74,12 +93,14 @@ def index_file_content(
         overlap=settings.CHUNK_OVERLAP,
     )
     if not chunks:
-        return 0
+        return 0, []
 
     embeddings = azure_openai.embed_texts(chunks)
+    doc_ids: list[str] = []
     docs: list[dict] = []
     for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
-        doc_id = _safe_doc_id(source_name, i)
+        doc_id = _chunk_doc_id(user_id, collection_id, source_name, i)
+        doc_ids.append(doc_id)
         docs.append(
             {
                 "id": doc_id,
@@ -88,7 +109,13 @@ def index_file_content(
                 "source": source_name,
                 "chunkIndex": i,
                 "contentVector": emb,
+                "userId": str(user_id),
+                "collectionId": str(collection_id),
             }
         )
     azure_search.upload_documents(docs)
-    return len(docs)
+    return len(docs), doc_ids
+
+
+def remove_document_vectors(document_ids: list[str]) -> None:
+    azure_search.delete_documents(document_ids)

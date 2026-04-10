@@ -4,31 +4,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}RAG Portal{% endblock %}</title>
+  <title>{% block title %}Knowledge Hub{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'rag_core/app.css' %}">
 </head>
-<body>
-  <header class="site-header">
-    <div class="wrap">
-      <a class="brand" href="{% url 'home' %}">Azure RAG</a>
-      <nav>
-        <a href="{% url 'chat' %}">Ask</a>
-        <a href="{% url 'upload' %}">Upload</a>
+<body class="{% block body_class %}{% endblock %}">
+{% block layout %}
+  <header class="nav-public">
+    <div class="nav-inner">
+      <a class="logo" href="{% url 'home' %}">Knowledge Hub</a>
+      <nav class="nav-links">
+        {% if user.is_authenticated %}
+          <a href="{% url 'dashboard' %}">Dashboard</a>
+          <a href="{% url 'chat' %}">Chat</a>
+          <span class="nav-user">{{ user.username }}</span>
+          <form class="nav-logout" action="{% url 'logout' %}" method="post">{% csrf_token %}
+            <button type="submit" class="linkish">Sign out</button>
+          </form>
+        {% else %}
+          <a href="{% url 'login' %}">Sign in</a>
+          <a class="btn btn-sm primary" href="{% url 'register' %}">Create account</a>
+        {% endif %}
       </nav>
     </div>
   </header>
-  <main class="wrap">
-    {% if messages %}
-      <ul class="messages">
-        {% for message in messages %}
-          <li class="{{ message.tags }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
+  <div class="page-messages">{% include "rag_core/partials/messages.html" %}</div>
+  <main class="main-public">
     {% block content %}{% endblock %}
   </main>
-  <footer class="site-footer wrap">
-    <small>Django + Azure OpenAI + Azure AI Search</small>
+  <footer class="footer-public">
+    <p>Private RAG workspaces — your data stays scoped to your account.</p>
   </footer>
+{% endblock %}
 </body>
 </html>
