@@ -93,6 +93,23 @@ High-level steps:
 
 9. **TLS:** use `certbot` with Let’s Encrypt when you have a domain name.
 
+## CI/CD (GitHub Actions → Azure VM)
+
+This repo includes `.github/workflows/deploy-vm.yml` which deploys `main` to your VM over SSH.
+
+### Required GitHub Secrets
+
+Create these in **GitHub → Settings → Secrets and variables → Actions → New repository secret**:
+
+- **`VM_HOST`**: VM public IP or DNS name (example: `203.0.113.10`)
+- **`VM_USER`**: SSH username (example: `azureuser`)
+- **`VM_SSH_PRIVATE_KEY`**: private key for SSH auth (PEM/OpenSSH format)
+- **`VM_APP_DIR`**: deployment folder on VM (example: `/var/www/rag-portal`)
+- **`ENV_FILE`**: full contents of your production `.env` (multi-line)
+
+The workflow rsyncs the repo to `VM_APP_DIR`, writes `.env`, then runs `deploy/deploy_vm.sh` which installs dependencies, runs migrations, collects static files, updates the Azure Search index schema, and restarts `rag-portal` (if installed as a systemd service).
+
+
 ### Security notes for production
 
 - Do not commit `.env`; restrict file permissions on the VM (`chmod 600 .env`).

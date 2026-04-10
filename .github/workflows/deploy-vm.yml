@@ -1,0 +1,46 @@
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+
+      - name: Add VM host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload app to VM
+        run: |
+          rsync -az --delete \
+            --exclude ".git/" \
+            --exclude ".venv/" \
+            --exclude "__pycache__/" \
+            --exclude "*.sqlite3" \
+            --exclude ".env" \
+            ./ "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ secrets.VM_APP_DIR }}/"
+
+      - name: Configure .env on VM
+        run: |
+          ssh "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "bash -lc 'mkdir -p \"${{ secrets.VM_APP_DIR }}\" && cat > \"${{ secrets.VM_APP_DIR }}/.env\" <<\"EOF\"\n${{ secrets.ENV_FILE }}\nEOF\nchmod 600 \"${{ secrets.VM_APP_DIR }}/.env\"'"
+
+      - name: Deploy (install, migrate, collectstatic, restart)
+        run: |
+          ssh "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "bash -lc 'cd \"${{ secrets.VM_APP_DIR }}\" && bash deploy/deploy_vm.sh'"
+
