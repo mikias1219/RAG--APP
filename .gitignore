@@ -11,3 +11,5 @@ documents/uploads/*
 *.egg-info/
 .idea/
 .vscode/
+
+# VM deploy key (do not commit)`ndeploy_keys/rag_vm_ed25519`ndeploy_keys/rag_vm_ed25519.pub
