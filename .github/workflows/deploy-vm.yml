@@ -16,11 +16,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
-          log-public-key: false
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for k in VM_HOST VM_USER VM_APP_DIR VM_SSH_PRIVATE_KEY ENV_FILE; do
+            if [ -z "${{ secrets[format('{0}', k)] }}" ]; then
+              echo "::error::Missing GitHub Secret: $k"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo "Add secrets in GitHub: Settings -> Secrets and variables -> Actions"
+            exit 1
+          fi
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
 
       - name: Add VM host key
         run: |
@@ -35,13 +49,14 @@ jobs:
             --exclude "__pycache__/" \
             --exclude "*.sqlite3" \
             --exclude ".env" \
+            -e "ssh -i ~/.ssh/id_ed25519" \
             ./ "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ secrets.VM_APP_DIR }}/"
 
       - name: Configure .env on VM
         run: |
-          ssh "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "bash -lc 'mkdir -p \"${{ secrets.VM_APP_DIR }}\" && cat > \"${{ secrets.VM_APP_DIR }}/.env\" <<\"EOF\"\n${{ secrets.ENV_FILE }}\nEOF\nchmod 600 \"${{ secrets.VM_APP_DIR }}/.env\"'"
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "bash -lc 'mkdir -p \"${{ secrets.VM_APP_DIR }}\" && cat > \"${{ secrets.VM_APP_DIR }}/.env\" <<\"EOF\"\n${{ secrets.ENV_FILE }}\nEOF\nchmod 600 \"${{ secrets.VM_APP_DIR }}/.env\"'"
 
       - name: Deploy (install, migrate, collectstatic, restart)
         run: |
-          ssh "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "bash -lc 'cd \"${{ secrets.VM_APP_DIR }}\" && bash deploy/deploy_vm.sh'"
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "bash -lc 'cd \"${{ secrets.VM_APP_DIR }}\" && bash deploy/deploy_vm.sh'"
 
