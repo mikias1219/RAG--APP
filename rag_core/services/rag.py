@@ -10,8 +10,9 @@ from . import azure_openai, azure_search
 
 
 def _safe_doc_id(source_name: str, chunk_index: int) -> str:
-    """Azure Search document keys: letters, digits, dash, underscore, equals."""
-    base = re.sub(r"[^a-zA-Z0-9_=.-]", "_", source_name)[:120]
+    """Azure Search document keys: letters, digits, dash, underscore, equals only (no dots)."""
+    base = re.sub(r"[^a-zA-Z0-9_=.-]", "_", source_name)
+    base = base.replace(".", "_")[:120]
     return f"{base}_{chunk_index}"
 
 SYSTEM_PROMPT = (
