@@ -1,0 +1,24 @@
+# Copy to /etc/systemd/system/rag-portal.service on the VM, adjust paths and user.
+#
+#   sudo nano /etc/systemd/system/rag-portal.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now rag-portal
+
+[Unit]
+Description=RAG Portal (Django + Gunicorn)
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/rag-portal
+Environment="PATH=/var/www/rag-portal/.venv/bin"
+EnvironmentFile=/var/www/rag-portal/.env
+ExecStart=/var/www/rag-portal/.venv/bin/gunicorn config.wsgi:application \
+  --bind 127.0.0.1:8000 \
+  --workers 3 \
+  --timeout 120
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,29 @@
+{% extends "rag_core/base.html" %}
+{% block title %}Home — RAG Portal{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Retrieval-Augmented Generation</h1>
+  <p class="lead">
+    Ask questions grounded in <strong>your documents</strong>. This app uses
+    <strong>Azure OpenAI</strong> (embeddings + chat) and <strong>Azure AI Search</strong>
+    (vector index) — the standard Microsoft pattern for RAG on Azure.
+  </p>
+  <p class="actions">
+    <a class="btn primary" href="{% url 'chat' %}">Start chatting</a>
+    <a class="btn" href="{% url 'upload' %}">Upload documents</a>
+  </p>
+</section>
+
+<section class="card">
+  <h2>Before you start</h2>
+  <ol>
+    <li>Copy <code>.env.example</code> to <code>.env</code> and add Azure keys.</li>
+    <li>Deploy models in Azure OpenAI: a <strong>chat</strong> deployment and an <strong>embedding</strong> deployment.</li>
+    <li>Create the search index: <code>python manage.py setup_search_index</code></li>
+    <li>Index sample text: <code>python manage.py index_documents</code></li>
+  </ol>
+  {% if not has_azure %}
+    <p class="warn">Azure endpoints are not configured in <code>.env</code> yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

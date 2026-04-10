@@ -1,0 +1,34 @@
+{% extends "rag_core/base.html" %}
+{% block title %}Ask — RAG Portal{% endblock %}
+{% block content %}
+<h1>Ask a question</h1>
+<form method="post" class="stack">
+  {% csrf_token %}
+  {{ form.question.errors }}
+  {{ form.question.label_tag }}
+  {{ form.question }}
+  <button type="submit" class="btn primary">Get answer</button>
+</form>
+
+{% if answer %}
+<section class="card answer">
+  <h2>Answer</h2>
+  <div class="prose">{{ answer|linebreaksbr }}</div>
+</section>
+{% endif %}
+
+{% if sources %}
+<section class="card sources">
+  <h2>Sources</h2>
+  <ul>
+    {% for s in sources %}
+      <li>
+        <strong>{{ s.title|default:s.source }}</strong>
+        {% if s.chunkIndex is not None %} — chunk {{ s.chunkIndex }}{% endif %}
+        {% if s.score %}<span class="muted">(score: {{ s.score|floatformat:4 }})</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

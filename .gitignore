@@ -1,0 +1,13 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+*.log
+staticfiles/
+documents/uploads/*
+!documents/uploads/.gitkeep
+*.egg-info/
+.idea/
+.vscode/
