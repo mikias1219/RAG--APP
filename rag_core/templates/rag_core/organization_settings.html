@@ -1,0 +1,65 @@
+{% extends "rag_core/base_app.html" %}
+{% block title %}Tenant Settings{% endblock %}
+{% block app_content %}
+<div class="page-head">
+  <div>
+    <h1>Tenant management</h1>
+    <p class="muted">Manage your organization plan, members, and access roles.</p>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Usage snapshot</h2>
+  <div class="usage-grid">
+    <div class="usage-card"><span>Questions</span><strong>{{ usage_map.question|default:0 }}</strong></div>
+    <div class="usage-card"><span>Uploads</span><strong>{{ usage_map.upload|default:0 }}</strong></div>
+    <div class="usage-card"><span>Tokens</span><strong>{{ usage_map.token|default:0 }}</strong></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Organization</h2>
+  <form method="post" class="narrow-form stack-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="update_org">
+    {{ org_form.as_p }}
+    {% if can_manage_org %}
+      <button type="submit" class="btn primary">Save tenant settings</button>
+    {% else %}
+      <p class="muted small">Only tenant admins can edit organization settings.</p>
+    {% endif %}
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Members</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>User</th><th>Email</th><th>Role</th></tr>
+    </thead>
+    <tbody>
+      {% for m in members %}
+        <tr>
+          <td>{{ m.user.username }}</td>
+          <td>{{ m.user.email }}</td>
+          <td>{{ m.role|title }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Add member</h2>
+  {% if can_manage_org %}
+    <form method="post" class="narrow-form stack-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_member">
+      {{ member_form.as_p }}
+      <button type="submit" class="btn primary">Add or update member</button>
+    </form>
+  {% else %}
+    <p class="muted small">Only tenant admins can add members.</p>
+  {% endif %}
+</section>
+{% endblock %}

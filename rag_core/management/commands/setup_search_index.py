@@ -85,7 +85,19 @@ class Command(BaseCommand):
                 facetable=True,
             ),
             SimpleField(
+                name="organizationId",
+                type=SearchFieldDataType.String,
+                filterable=True,
+                facetable=True,
+            ),
+            SimpleField(
                 name="collectionId",
+                type=SearchFieldDataType.String,
+                filterable=True,
+                facetable=True,
+            ),
+            SimpleField(
+                name="documentUid",
                 type=SearchFieldDataType.String,
                 filterable=True,
                 facetable=True,

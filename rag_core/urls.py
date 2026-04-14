@@ -17,6 +17,7 @@ urlpatterns = [
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("app/", views.dashboard, name="dashboard"),
+    path("app/organization/", views.organization_settings, name="organization_settings"),
     path("app/collections/new/", views.collection_create, name="collection_create"),
     path("app/collections/<int:pk>/", views.collection_detail, name="collection_detail"),
     path(

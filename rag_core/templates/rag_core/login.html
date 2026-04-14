@@ -13,6 +13,11 @@
     <label>Password {{ form.password }}</label>
     <button type="submit" class="btn primary wide">Continue</button>
   </form>
+  {% if oidc_enabled %}
+    <div class="auth-sso">
+      <a class="btn ghost wide" href="/oidc/authenticate/">Sign in with Microsoft Entra ID</a>
+    </div>
+  {% endif %}
   <p class="auth-alt">No account? <a href="{% url 'register' %}">Create one</a></p>
 </div>
 {% endblock %}

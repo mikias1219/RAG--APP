@@ -85,6 +85,7 @@ class Command(BaseCommand):
                 text,
                 path.name,
                 user_id=user.id,
+                organization_id=coll.organization_id or 0,
                 collection_id=coll.pk,
                 title=path.name,
             )

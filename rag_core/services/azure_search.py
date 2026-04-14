@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from django.conf import settings
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
@@ -36,12 +38,24 @@ def hybrid_search(
         k_nearest_neighbors=top,
         fields="contentVector",
     )
-    results = client.search(
-        search_text=query_text or "*",
-        vector_queries=[vector_query],
-        filter=filter_expr,
-        select=["id", "title", "content", "source", "chunkIndex", "userId", "collectionId"],
-        top=top,
+    results = _with_retries(
+        lambda: client.search(
+            search_text=query_text or "*",
+            vector_queries=[vector_query],
+            filter=filter_expr,
+            select=[
+                "id",
+                "title",
+                "content",
+                "source",
+                "chunkIndex",
+                "userId",
+                "organizationId",
+                "collectionId",
+                "documentUid",
+            ],
+            top=top,
+        )
     )
     out: list[dict] = []
     for r in results:
@@ -61,7 +75,7 @@ def hybrid_search(
 
 def upload_documents(documents: list[dict]) -> None:
     client = _search_client()
-    client.merge_or_upload_documents(documents)
+    _with_retries(lambda: client.merge_or_upload_documents(documents))
 
 
 def delete_documents(document_ids: list[str]) -> None:
@@ -69,4 +83,47 @@ def delete_documents(document_ids: list[str]) -> None:
     if not document_ids:
         return
     client = _search_client()
-    client.delete_documents(documents=[{"id": i} for i in document_ids])
+    _with_retries(lambda: client.delete_documents(documents=[{"id": i} for i in document_ids]))
+
+
+def keyword_search(query_text: str, top: int = 5, filter_expr: str | None = None) -> list[dict]:
+    client = _search_client()
+    results = _with_retries(
+        lambda: client.search(
+            search_text=query_text or "*",
+            filter=filter_expr,
+            select=["id", "title", "content", "source", "chunkIndex", "collectionId"],
+            top=top,
+        )
+    )
+    out: list[dict] = []
+    for r in results:
+        out.append(
+            {
+                "id": r.get("id"),
+                "title": r.get("title"),
+                "content": r.get("content"),
+                "source": r.get("source"),
+                "chunkIndex": r.get("chunkIndex"),
+                "score": r.get("@search.score"),
+                "collectionId": r.get("collectionId"),
+            }
+        )
+    return out
+
+
+def healthcheck() -> None:
+    keyword_search("healthcheck", top=1)
+
+
+def _with_retries(fn, *, retries: int = 3, delay_s: float = 0.8):
+    last_exc = None
+    for attempt in range(retries):
+        try:
+            return fn()
+        except Exception as exc:  # pragma: no cover - network behavior
+            last_exc = exc
+            if attempt == retries - 1:
+                break
+            time.sleep(delay_s * (2**attempt))
+    raise RuntimeError(f"Azure Search request failed after retries: {last_exc}") from last_exc

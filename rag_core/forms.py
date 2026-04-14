@@ -36,6 +36,35 @@ class CollectionForm(forms.Form):
     )
 
 
+class OrganizationForm(forms.Form):
+    name = forms.CharField(
+        max_length=220,
+        widget=forms.TextInput(attrs={"class": "inp", "placeholder": "e.g. Acme Corp"}),
+    )
+    plan = forms.ChoiceField(
+        choices=[
+            ("free", "Free"),
+            ("pro", "Pro"),
+            ("enterprise", "Enterprise"),
+        ],
+        widget=forms.Select(attrs={"class": "inp"}),
+    )
+
+
+class OrganizationMemberForm(forms.Form):
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={"class": "inp", "placeholder": "member@company.com"})
+    )
+    role = forms.ChoiceField(
+        choices=[
+            ("admin", "Admin"),
+            ("editor", "Editor"),
+            ("viewer", "Viewer"),
+        ],
+        widget=forms.Select(attrs={"class": "inp"}),
+    )
+
+
 class QuestionForm(forms.Form):
     question = forms.CharField(
         label="",

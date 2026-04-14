@@ -1,6 +1,6 @@
 # Knowledge Hub — multi-tenant Django RAG (Azure OpenAI + Azure AI Search)
 
-Server-rendered **Django** app with **login/registration**, **per-user workspaces** (collections), and a **sidebar + chat UI**. Each user only queries **their own** indexed chunks in Azure AI Search (`userId` + `collectionId` filters). Retrieval uses **Azure OpenAI** (embeddings + chat) and **Azure AI Search** (vector index).
+Server-rendered **Django** app with **login/registration**, **organization tenants + RBAC**, workspace collections, and a modernized chat/admin UI. Queries are scoped by tenant/workspace in Azure AI Search (`organizationId` + `collectionId` filters). Retrieval uses **Azure OpenAI** (embeddings + chat) and **Azure AI Search** (vector index + lexical fallback).
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ python manage.py runserver
 2. Open **Workspaces** → upload `.txt`, `.md`, `.pdf`, or `.docx` into a workspace.
 3. Use **Chat** — scope **all workspaces** or one workspace via the sidebar.
 
-After upgrading, run **`python manage.py setup_search_index` again** so the index includes `userId` and `collectionId`. Old chunks without those fields will not match user filters; re-upload if needed.
+After upgrading, run **`python manage.py setup_search_index` again** so the index includes tenant-aware fields (`organizationId`, `collectionId`, `documentUid`).
 
 **CLI indexing** (optional): `python manage.py index_documents --username YOU --collection-id 1 --path path/to/file.pdf`
 
@@ -95,7 +95,10 @@ High-level steps:
 
 ## CI/CD (GitHub Actions → Azure VM)
 
-This repo includes `.github/workflows/deploy-vm.yml` which deploys `main` to your VM over SSH.
+This repo includes:
+- `.github/workflows/ci.yml` for lint/type/security/deploy checks
+- `.github/workflows/deploy-staging.yml` for staging releases
+- `.github/workflows/deploy-production.yml` for production releases after CI success
 
 ### Required GitHub Secrets
 
@@ -114,7 +117,7 @@ The workflow rsyncs the repo to `VM_APP_DIR`, writes `.env`, then runs `deploy/d
 
 - Do not commit `.env`; restrict file permissions on the VM (`chmod 600 .env`).
 - Prefer **managed identity** or **Key Vault** over long-lived API keys when you evolve the app.
-- Add rate limiting and authentication (e.g. Azure AD) before exposing broadly on the internet.
+- Prefer OIDC (Microsoft Entra ID) and Key Vault + managed identity for enterprise deployments.
 
 ## Project layout
 

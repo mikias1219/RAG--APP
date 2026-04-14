@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Type check
+        run: mypy rag_core config
+
+      - name: Security scans
+        run: |
+          bandit -q -r rag_core config
+          pip install pip-audit
+          pip-audit -r requirements.txt
+
+      - name: Django deployment checks
+        env:
+          DJANGO_SECRET_KEY: test-secret
+          DJANGO_DEBUG: "false"
+          DJANGO_ALLOWED_HOSTS: localhost
+          DJANGO_CSRF_TRUSTED_ORIGINS: https://example.com
+        run: python manage.py check --deploy

@@ -19,6 +19,9 @@ param dnsLabelPrefix string
 @description('VM size.')
 param vmSize string = 'Standard_B2s'
 
+@description('Trusted CIDR/IP for SSH access. Use your office/VPN egress IP.')
+param sshSourcePrefix string = '10.0.0.0/32'
+
 var vnetName = '${vmName}-vnet'
 var subnetName = 'default'
 var nsgName = '${vmName}-nsg'
@@ -40,7 +43,7 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2024-01-01' = {
           protocol: 'Tcp'
           sourcePortRange: '*'
           destinationPortRange: '22'
-          sourceAddressPrefix: '*'
+          sourceAddressPrefix: sshSourcePrefix
           destinationAddressPrefix: '*'
         }
       }

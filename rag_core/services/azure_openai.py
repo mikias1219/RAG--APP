@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 
 from django.conf import settings
 from openai import AzureOpenAI
@@ -38,6 +39,19 @@ def get_client() -> AzureOpenAI:
     )
 
 
+def _with_retries(fn, *, retries: int = 3, delay_s: float = 0.8):
+    last_exc = None
+    for attempt in range(retries):
+        try:
+            return fn()
+        except Exception as exc:  # pragma: no cover - network behavior
+            last_exc = exc
+            if attempt == retries - 1:
+                break
+            time.sleep(delay_s * (2**attempt))
+    raise RuntimeError(f"Azure OpenAI request failed after retries: {last_exc}") from last_exc
+
+
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """Batch embed; returns one vector per input string."""
     c = _config()
@@ -45,9 +59,11 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         raise RuntimeError("AZURE_OPENAI_EMBEDDING_DEPLOYMENT must be set.")
     client = get_client()
     # Azure OpenAI embeddings API
-    resp = client.embeddings.create(
-        model=c.embedding_deployment,
-        input=texts,
+    resp = _with_retries(
+        lambda: client.embeddings.create(
+            model=c.embedding_deployment,
+            input=texts,
+        )
     )
     return [item.embedding for item in resp.data]
 
@@ -72,16 +88,22 @@ def chat_with_context(
         "say you don't know from the provided documents.\n\n"
         f"Context:\n{context_block}\n\nQuestion: {user_question}"
     )
-    resp = client.chat.completions.create(
-        model=c.chat_deployment,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content},
-        ],
-        temperature=0.2,
-        max_tokens=1024,
+    resp = _with_retries(
+        lambda: client.chat.completions.create(
+            model=c.chat_deployment,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            temperature=0.2,
+            max_tokens=768,
+        )
     )
     choice = resp.choices[0]
     if not choice.message or not choice.message.content:
         return ""
     return choice.message.content.strip()
+
+
+def healthcheck() -> None:
+    embed_query("healthcheck")

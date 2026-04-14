@@ -7,8 +7,10 @@
     <nav class="nav-links nav-app-center">
       <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}>Workspaces</a>
       <a href="{% url 'chat' %}" {% if request.resolver_match.url_name == 'chat' %}class="active"{% endif %}>Chat</a>
+      <a href="{% url 'organization_settings' %}" {% if request.resolver_match.url_name == 'organization_settings' %}class="active"{% endif %}>Tenant</a>
     </nav>
     <div class="nav-right">
+      {% if active_org %}<span class="org-badge">{{ active_org.name }} · {{ active_org.plan|upper }}</span>{% endif %}
       <span class="nav-user">{{ user.username }}</span>
       <form class="nav-logout" action="{% url 'logout' %}" method="post">{% csrf_token %}
         <button type="submit" class="linkish">Sign out</button>

@@ -12,7 +12,7 @@
 <section class="panel">
   <h2>Upload</h2>
   <p class="muted small">Allowed: .txt, .md, .pdf, .docx (size limit is set by your administrator in MAX_UPLOAD_MB).</p>
-  <form method="post" enctype="multipart/form-data" class="upload-row">
+  <form method="post" enctype="multipart/form-data" class="upload-row" hx-boost="true">
     {% csrf_token %}
     {{ upload_form.file }}
     <button type="submit" class="btn primary">Upload &amp; index</button>

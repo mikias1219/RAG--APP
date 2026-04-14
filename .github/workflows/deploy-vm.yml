@@ -1,17 +1,28 @@
-name: Deploy to Azure VM
+name: Deploy
 
 on:
   push:
     branches: ["main"]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options: ["staging", "production"]
 
 concurrency:
-  group: deploy-main
+  group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy:
+    needs: []
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,10 +52,10 @@ jobs:
           printf '%s\n' "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Add VM host key
+      - name: Add VM host key (pinned)
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts
+          printf '%s\n' "${{ secrets.VM_HOST_KEY }}" >> ~/.ssh/known_hosts
 
       - name: Upload app to VM
         run: |
@@ -64,4 +75,8 @@ jobs:
       - name: Deploy (install, migrate, collectstatic, restart)
         run: |
           ssh -i ~/.ssh/id_ed25519 "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "bash -lc 'cd \"${{ secrets.VM_APP_DIR }}\" && bash deploy/deploy_vm.sh'"
+
+      - name: Smoke test health endpoint
+        run: |
+          curl -fsS "${{ secrets.APP_HEALTHCHECK_URL }}"
 

@@ -6,8 +6,14 @@
     <h1>Workspaces</h1>
     <p class="muted">Organize documents by team, project, or client. Each workspace is indexed separately.</p>
   </div>
-  <a class="btn primary" href="{% url 'collection_create' %}">+ New workspace</a>
+  <div class="head-actions">
+    <a class="btn ghost" href="{% url 'organization_settings' %}">Tenant settings</a>
+    <a class="btn primary" href="{% url 'collection_create' %}">+ New workspace</a>
+  </div>
 </div>
+{% if active_org %}
+  <p class="stat-pill">Tenant: {{ active_org.name }} · Plan: {{ active_org.plan|upper }}</p>
+{% endif %}
 <p class="stat-pill">{{ doc_count }} document(s) indexed across all your workspaces</p>
 <div class="collection-grid">
   {% for c in collections %}

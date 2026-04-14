@@ -1,0 +1,50 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: ["develop"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "${{ secrets.VM_HOST_KEY }}" >> ~/.ssh/known_hosts
+
+      - name: Upload app to staging VM
+        run: |
+          rsync -az --delete \
+            --exclude ".git/" \
+            --exclude ".venv/" \
+            --exclude "__pycache__/" \
+            --exclude "*.sqlite3" \
+            --exclude ".env" \
+            -e "ssh -i ~/.ssh/id_ed25519" \
+            ./ "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ secrets.VM_APP_DIR }}/"
+
+      - name: Write environment file
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "bash -lc 'cat > \"${{ secrets.VM_APP_DIR }}/.env\" <<\"EOF\"\n${{ secrets.ENV_FILE }}\nEOF\nchmod 600 \"${{ secrets.VM_APP_DIR }}/.env\"'"
+
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "bash -lc 'cd \"${{ secrets.VM_APP_DIR }}\" && bash deploy/deploy_vm.sh'"
+
+      - name: Smoke test
+        run: curl -fsS "${{ secrets.APP_HEALTHCHECK_URL }}"

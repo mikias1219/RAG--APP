@@ -46,11 +46,11 @@
     {% endfor %}
   </div>
 
-  <form method="post" class="chat-composer">
+  <form method="post" class="chat-composer" x-data="{busy:false}" @submit="busy=true">
     {% csrf_token %}
     <input type="hidden" name="collection" value="{{ collection_pk|default:'' }}">
     {{ question_form.question }}
-    <button type="submit" class="btn primary chat-send">Send</button>
+    <button type="submit" class="btn primary chat-send" :disabled="busy" x-text="busy ? 'Sending...' : 'Send'">Send</button>
   </form>
 </div>
 {% endblock %}
